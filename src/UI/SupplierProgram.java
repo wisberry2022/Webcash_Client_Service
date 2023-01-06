@@ -6,6 +6,8 @@ import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Label;
 import java.awt.LayoutManager;
@@ -13,13 +15,19 @@ import java.awt.Panel;
 import java.awt.TextArea;
 import java.awt.TextField;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
+import ETC.Customer;
 import ETC.FileHandler;
 
 class RegisterWindow<T> extends Frame {
@@ -118,7 +126,6 @@ class RegisterWindow<T> extends Frame {
 					
 				}else {
 					CounselorList.add(input);
-					// ÏÉÅÎã¥Ïõê Ï∂îÍ∞Ä
 					DataWrite();
 					Frame ae = new Frame();
 					int posWid = (int)(SCREEN_WIDTH/2) - (int)(PROGRAM_WIDTH/2/2);
@@ -199,7 +206,7 @@ class LoginWindow extends Frame{
     }
 
     public LoginWindow() {
-        // ÏÉÅÎã¥ÏÇ¨ Î¶¨Ïä§Ìä∏ Îì±Î°ù
+
         DataLoad();
         setLayout(new GridLayout(5,1));
 
@@ -223,7 +230,6 @@ class LoginWindow extends Frame{
                 String input = loginField.getText();
                 System.out.println(input);
                 if(CounselorList.contains(input)) {
-                    // Î°úÍ∑∏Ïù∏ ÏÑ±Í≥µ Ïãú Îã§Ïùå ÌôîÎ©¥ÏúºÎ°ú ÎÑòÏñ¥Í∞ÄÍ∏∞
                     CounselorProgram Next = new CounselorProgram(input);
                     setVisible(false);
                 }else {
@@ -251,7 +257,6 @@ class LoginWindow extends Frame{
         p.add(rgstBtn);
         add(p);
 
-        // Îã´Í∏∞ Ïù¥Î≤§Ìä∏
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -277,14 +282,81 @@ class CounselorProgram extends Frame {
     final static int PROGRAM_WIDTH = sizeManager.width;
     final static int PROGRAM_HEIGHT = sizeManager.height;
     final static PanelManager PM = new PanelManager();
+    final static FileHandler rfh = new FileHandler("data.bin", FileHandler.READ);
     private ERR_MODAL<CounselorProgram> EM = new ERR_MODAL<>(sizeManager, this, 100, 100);
+    private Queue<Customer> CustomerList = new LinkedList<>();
     private String me;
-    private TextArea taskList;
+    private java.awt.List taskList = new java.awt.List();
     private TextArea detail;
+    
+    public void loadData() {
+    	rfh.settingReader();
+    	rfh.settingBufferedReader();
+    	
+    	String rawData;
+    	rawData = rfh.BufferedFileRead();
+    	
+    	String[] parsed = rawData.split("\n");
+    	for(int i = 0; i<parsed.length; i++) {
+    		String[] data = parsed[i].split("\t");
+    		if(me.equals(data[data.length-1])) {
+    			Customer cs = new Customer(data[0]);
+    			cs.inquiry = data[1];
+    			CustomerList.add(cs);
+    		}
+    	}
+    	
+    	String msg;
+    	
+    	Iterator<Customer> ite = CustomerList.iterator();
+    	while(ite.hasNext()) {
+    		Customer cs = ite.next();
+    		msg = "πË¡§ ∞Ì∞¥: " + cs.name;
+    		taskList.add(msg);
+    	}
+    	
+    	rfh.brClose();
+    	rfh.frClose();
+    }
+    
+    public Dialog chatWindow() {
+    	Dialog chat = new Dialog(this, "WCS Chat");
+    	int pw = PROGRAM_WIDTH-50;
+    	int ph = PROGRAM_HEIGHT;
+    	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pw/2);
+        int posHgt = (int)(SCREEN_HEIGHT/2) - (int)(ph/2);
+    	chat.setBounds(posWid, posHgt, pw, ph);
+    	
+    	chat.setLayout(new GridBagLayout());
+    	GridBagConstraints gbc = new GridBagConstraints();
+    	gbc.fill = GridBagConstraints.BOTH;
+    	
+    	TextArea chatWindow = new TextArea();
+    	gbc.gridx = 0;
+    	gbc.gridy = 0;
+    	gbc.gridwidth = -1;
+    	gbc.weighty = 5;
+    	chat.add(chatWindow, gbc);
+    	chatWindow.setText(me + " ªÛ¥„ªÁ¥‘ π›∞©Ω¿¥œ¥Ÿ!");
+    	
+    	TextField chatter = new TextField();
+    	gbc.gridx = 0;
+    	gbc.gridy = 1;
+    	chat.add(chatter, gbc);
+    	
+    	chat.addWindowListener(new WindowAdapter() {
+    		@Override
+    		public void windowClosing(WindowEvent e) {
+    			chat.dispose();
+    		}
+    	});
+    	
+    	return chat;
+    }
     
     public CounselorProgram(String name) {
     	me = name;
-        // Îã´Í∏∞ Ïù¥Î≤§Ìä∏
+    	loadData();
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -293,7 +365,6 @@ class CounselorProgram extends Frame {
         });
 
         setTitle("WCS");
-//        LayoutManager lm = new GridLayout(4,1,0,10);
         LayoutManager lm = new BorderLayout();
         setLayout(lm);
         
@@ -314,9 +385,27 @@ class CounselorProgram extends Frame {
         Panel p = new Panel();
         LayoutManager plm = new GridLayout(1,2,5,0);
         p.setLayout(plm);
-        taskList = new TextArea();
         
         detail = new TextArea();
+        
+        taskList.addActionListener(new ActionListener() {
+        	@Override
+        	public void actionPerformed(ActionEvent e) {
+        		String msg = taskList.getSelectedItem();
+        		String parsed = msg.split(":")[msg.split(":").length-1].trim();
+        		System.out.println(parsed.trim());
+        		Iterator<Customer> ite = CustomerList.iterator();
+        		while(ite.hasNext()) {
+        			String monitor;
+        			Customer cs = ite.next();
+        			if(cs.name.equals(parsed)) {
+        				monitor = "¥Î±‚π¯»£: " + cs.customerId + "\n" + "¿Ã∏ß: " + cs.name + "\n" + "πÆ¿«≥ªø™: " + cs.inquiry;
+            			detail.setText(monitor);	
+        			}
+        		}
+        	}
+        });
+        
         p.add(taskList);
         p.add(detail);
         
@@ -326,6 +415,15 @@ class CounselorProgram extends Frame {
         btnPn.setLayout(new GridLayout(2,1,0,5));
         
         Button goChat = PM.getButton("Chat");
+        
+        goChat.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseReleased(MouseEvent e) {
+        		Dialog chat = chatWindow();
+        		chat.setVisible(true);
+        	}
+        });
+        
         Button done = PM.getButton("Counsel Done");
         btnPn.add(goChat);
         btnPn.add(done);
@@ -342,7 +440,7 @@ public class SupplierProgram {
 
     public static void main(String[] args) {
         LoginWindow lw = new LoginWindow();
-//    	CounselorProgram cp = new CounselorProgram("Ïö∞ÎèôÌòÑ");
+//    	CounselorProgram cp = new CounselorProgram("ø’¿Œº≠");
 
     }
 

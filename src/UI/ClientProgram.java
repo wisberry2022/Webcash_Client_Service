@@ -3,17 +3,27 @@ package UI;
 import java.awt.BorderLayout;
 import java.awt.Button;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.Label;
 import java.awt.LayoutManager;
+import java.awt.List;
 import java.awt.Panel;
 import java.awt.TextArea;
+import java.awt.TextField;
 import java.awt.Toolkit;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
+
+import ETC.FileHandler;
 
 class Monitor extends Frame {
     static Toolkit tk = Toolkit.getDefaultToolkit();
@@ -23,8 +33,60 @@ class Monitor extends Frame {
     static final int PROGRAM_WIDTH = sizeManager.width;
     static final int PROGRAM_HEIGHT = sizeManager.height;
     static final PanelManager PM = new PanelManager();
-
+    static final FileHandler fh = new FileHandler("counselor.bin", FileHandler.READ);
+    static final FileHandler wfh = new FileHandler("data.bin", "data.bin");
+    private ArrayList<String> CounselorList = new ArrayList<>();
+    private String name;
+    private String category;
+    private String counselor;
+    private String beforeData;
+    private TextField tf;
+    private TextArea resultMonitor;
+    
+    
+    public void loadData() {
+    	wfh.settingReader();
+    	wfh.settingBufferedReader();
+    	
+    	beforeData = wfh.BufferedFileRead();
+//    	System.out.println("±‚¡∏ µ•¿Ã≈Õ: " + beforeData);
+    	
+    	wfh.brClose();
+    	wfh.frClose();
+    }
+    
+    public void WriteData() {	
+    	wfh.settingWriter();
+    	wfh.settingBufferedWriter();
+    
+    	String msg;
+    	msg = beforeData + name + "\t" + category + "\t" + counselor + "\n";
+//    	System.out.println("¿‘∑¬«“ µ•¿Ã≈Õ: " + msg);
+    	
+    	wfh.BufferedFileWrite(msg);
+    	
+    	wfh.bwClose();
+    	wfh.fwClose();
+    	
+    }
+    
+    public void loadCounselor() {
+    	fh.settingReader();
+    	fh.settingBufferedReader();
+    	
+    	String rawData = fh.BufferedFileRead();
+    	String[] datas = rawData.split("\n");
+    	for(int i = 0; i<datas.length; i++) {
+    		CounselorList.add(datas[i]);
+    	}
+    	
+    	fh.brClose();
+    	fh.frClose();
+    }
+    
     public Monitor() {
+    	
+    	loadCounselor();
         LayoutManager lm = new GridBagLayout();
 
         setLayout(lm);
@@ -46,9 +108,28 @@ class Monitor extends Frame {
         Panel CasePanel = PM.getCasePanel();
         CasePanel.setLayout(new BorderLayout());
 
-        Panel nameField = PM.getInputField();
+        Panel OutPanel = new Panel();
+        OutPanel.setLayout(new BorderLayout());
+        Panel panel = new Panel();
 
-        CasePanel.add(nameField, BorderLayout.NORTH);
+        panel.setLayout(new FlowLayout());
+        Label lb = new Label("Your Name");
+        tf = new TextField(30);
+        Button btn = new Button("submit");
+        
+        btn.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseReleased(MouseEvent e) {
+        		name = tf.getText();
+        	}
+        });
+        
+        panel.add(lb, FlowLayout.LEFT);
+        panel.add(tf, FlowLayout.CENTER);
+        panel.add(btn, FlowLayout.RIGHT);
+
+        OutPanel.add(panel, BorderLayout.CENTER);
+        CasePanel.add(OutPanel, BorderLayout.NORTH);
 
         Panel selectBox = new Panel();
         selectBox.setLayout(new GridBagLayout());
@@ -65,28 +146,49 @@ class Monitor extends Frame {
         subGbc.gridy = 0;
         selectBox.add(secondLabel, subGbc);
 
-        // ÏóêÎü¨ Î©îÎâ¥
-        java.awt.List selection = PM.getSelectMenu();
+        String[] Inqueries = {"ø°∑Ø πÆ¿«", "º÷∑Áº« µµ¿‘", "º÷∑Áº« «ÿ¡ˆ", "±‚≈∏"};
+        List selection = new List();
+        for(int i = 0; i<Inqueries.length; i++) {
+            selection.add(Inqueries[i]);
+        }
+        
         subGbc.gridx = 0;
         subGbc.gridy = 1;
         selectBox.add(selection, subGbc);
 
-        // ÏÉÅÎã¥Ïã†Ï≤≠ Ï∂úÎ†•Ï∞Ω
-        TextArea resultMonitor = new TextArea(10,35);
+        selection.addActionListener(new ActionListener() {
+        	@Override
+        	public void actionPerformed(ActionEvent e) {
+        		category = selection.getSelectedItem();
+        	}
+        });
+        
+        resultMonitor = new TextArea(10,35);
         resultMonitor.setEditable(false);
 
         subGbc.gridx = 1;
         subGbc.gridy = 1;
         selectBox.add(resultMonitor, subGbc);
 
-        // ÏÉÅÎã¥Ïã†Ï≤≠
-        Button btn = new Button("request");
+        Button request = new Button("request");
         subGbc.gridx = 0;
         subGbc.gridy = 2;
         subGbc.gridwidth = 2;
         subGbc.insets = new Insets(10, 0, 10, 0);
-        selectBox.add(btn, subGbc);
+        selectBox.add(request, subGbc);
 
+        request.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseReleased(MouseEvent e) {
+        		loadData();
+        		String msg;
+        		counselor = CounselorList.get((int)(Math.random() * CounselorList.size()));
+        		msg = "¿Ã∏ß: " + name + "\n" + "πÆ¿«≥ªø™: " + category + "\n" + "πË¡§ ªÛ¥„ªÁ: " + counselor;
+        		resultMonitor.setText(msg);
+        		WriteData();
+        	}
+        });
+        
         CasePanel.add(selectBox);
 
         total.gridx = 0;
@@ -95,7 +197,6 @@ class Monitor extends Frame {
 
         setVisible(true);
 
-        // Îã´Í∏∞ event
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
