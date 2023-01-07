@@ -6,8 +6,6 @@ import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Label;
 import java.awt.LayoutManager;
@@ -17,11 +15,23 @@ import java.awt.TextField;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -189,7 +199,7 @@ class LoginWindow extends Frame{
     private static final FileHandler fh = new FileHandler("counselor.bin", "counselor.bin");
     private TextField loginField;
     private Button logBtn, rgstBtn;
-
+    
     public static void DataLoad() {
         fh.settingReader();
         fh.settingBufferedReader();
@@ -206,7 +216,6 @@ class LoginWindow extends Frame{
     }
 
     public LoginWindow() {
-
         DataLoad();
         setLayout(new GridLayout(5,1));
 
@@ -228,9 +237,8 @@ class LoginWindow extends Frame{
             @Override
             public void mouseReleased(MouseEvent e) {
                 String input = loginField.getText();
-                System.out.println(input);
                 if(CounselorList.contains(input)) {
-                    CounselorProgram Next = new CounselorProgram(input);
+                    CounselorProgram next = new CounselorProgram(input);
                     setVisible(false);
                 }else {
                     Dialog lf = EM.ERR_WINDOW("Not Registered Counselor!");
@@ -274,7 +282,8 @@ class LoginWindow extends Frame{
     }
 }
 
-class CounselorProgram extends Frame {
+
+public class CounselorProgram extends Frame{
     final static Toolkit tk = Toolkit.getDefaultToolkit();
     final static Dimension sizeManager = new Dimension(500, 550);
     final static int SCREEN_WIDTH = tk.getScreenSize().width;
@@ -286,8 +295,28 @@ class CounselorProgram extends Frame {
     private ERR_MODAL<CounselorProgram> EM = new ERR_MODAL<>(sizeManager, this, 100, 100);
     private Queue<Customer> CustomerList = new LinkedList<>();
     private String me;
+    private String currentCustom;
     private java.awt.List taskList = new java.awt.List();
     private TextArea detail;
+	private boolean keep = true;
+	static String send = "";
+	static String receive = "";
+	static TextArea chatWindow = new TextArea();
+	static TextField chatter = new TextField();
+	static PrintWriter pw;
+	
+    public void refresh() {
+    	String[] itms = taskList.getItems();
+    	for(int i = 0; i<itms.length; i++) {
+    		taskList.remove(itms[i]);
+    	}
+    	Iterator<Customer> temp = CustomerList.iterator();
+    	Collection<Customer> temp2 = new ArrayList<>();
+    	while(temp.hasNext()) {
+    		temp2.add(temp.next());
+    	}
+    	CustomerList.removeAll(temp2);
+    }
     
     public void loadData() {
     	rfh.settingReader();
@@ -297,16 +326,18 @@ class CounselorProgram extends Frame {
     	rawData = rfh.BufferedFileRead();
     	
     	String[] parsed = rawData.split("\n");
+    	int idx = 1;
     	for(int i = 0; i<parsed.length; i++) {
     		String[] data = parsed[i].split("\t");
     		if(me.equals(data[data.length-1])) {
     			Customer cs = new Customer(data[0]);
+    			cs.customerId = idx++;
     			cs.inquiry = data[1];
     			CustomerList.add(cs);
     		}
     	}
     	
-    	String msg;
+    	String msg = "";
     	
     	Iterator<Customer> ite = CustomerList.iterator();
     	while(ite.hasNext()) {
@@ -319,30 +350,44 @@ class CounselorProgram extends Frame {
     	rfh.frClose();
     }
     
-    public Dialog chatWindow() {
+    public Dialog showChat() {
     	Dialog chat = new Dialog(this, "WCS Chat");
     	int pw = PROGRAM_WIDTH-50;
     	int ph = PROGRAM_HEIGHT;
     	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pw/2);
         int posHgt = (int)(SCREEN_HEIGHT/2) - (int)(ph/2);
     	chat.setBounds(posWid, posHgt, pw, ph);
+    	    	
+    	chat.setLayout(new BorderLayout());
     	
-    	chat.setLayout(new GridBagLayout());
-    	GridBagConstraints gbc = new GridBagConstraints();
-    	gbc.fill = GridBagConstraints.BOTH;
+    	Button off = new Button("Counsel Off");
+    	chat.setTitle("WCS-Counselor");
     	
-    	TextArea chatWindow = new TextArea();
-    	gbc.gridx = 0;
-    	gbc.gridy = 0;
-    	gbc.gridwidth = -1;
-    	gbc.weighty = 5;
-    	chat.add(chatWindow, gbc);
-    	chatWindow.setText(me + " 상담사님 반갑습니다!");
+    	Panel btnBox =new Panel();
+    	btnBox.setLayout(new GridLayout(2,1));
+    	btnBox.add(chatter);
+    	btnBox.add(off);
     	
-    	TextField chatter = new TextField();
-    	gbc.gridx = 0;
-    	gbc.gridy = 1;
-    	chat.add(chatter, gbc);
+    	off.addMouseListener(new MouseAdapter() {
+    		@Override
+    		public void mouseReleased(MouseEvent e) {
+    			keep = false;
+    		}
+    	});
+    	    	
+//    	chatter.addKeyListener(new KeyAdapter() {
+//    		@Override
+//    		public void keyReleased(KeyEvent e) {
+//    			if(e.getKeyCode() == 10) {
+//    				send = "[상담사]: " + chatter.getText() + "\n";
+//    				chatWindow.append(send);
+//    				chatter.setText("");
+//    			}
+//    		}
+//    	});
+    	
+    	chat.add(chatWindow, BorderLayout.CENTER);
+    	chat.add(btnBox, BorderLayout.SOUTH);
     	
     	chat.addWindowListener(new WindowAdapter() {
     		@Override
@@ -351,12 +396,25 @@ class CounselorProgram extends Frame {
     		}
     	});
     	
-    	return chat;
+		return chat;
     }
     
     public CounselorProgram(String name) {
     	me = name;
     	loadData();
+    	
+    	chatter.addActionListener(new ActionListener() {
+    		@Override
+    		public void actionPerformed(ActionEvent e) {
+    			String msg = "[상담사]: " + chatter.getText() + "\n";
+    			pw.print(msg);
+    			pw.flush();
+    			chatter.setText("");
+    			chatWindow.append(msg);
+    		}
+    	});
+    	
+    	
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -393,13 +451,13 @@ class CounselorProgram extends Frame {
         	public void actionPerformed(ActionEvent e) {
         		String msg = taskList.getSelectedItem();
         		String parsed = msg.split(":")[msg.split(":").length-1].trim();
-        		System.out.println(parsed.trim());
         		Iterator<Customer> ite = CustomerList.iterator();
         		while(ite.hasNext()) {
         			String monitor;
         			Customer cs = ite.next();
         			if(cs.name.equals(parsed)) {
         				monitor = "대기번호: " + cs.customerId + "\n" + "이름: " + cs.name + "\n" + "문의내역: " + cs.inquiry;
+        				currentCustom =cs.name; 
             			detail.setText(monitor);	
         			}
         		}
@@ -412,21 +470,32 @@ class CounselorProgram extends Frame {
         add(p, BorderLayout.CENTER);
         
         Panel btnPn = new Panel();
-        btnPn.setLayout(new GridLayout(2,1,0,5));
+        btnPn.setLayout(new GridLayout(3,1,0,5));
         
         Button goChat = PM.getButton("Chat");
         
         goChat.addMouseListener(new MouseAdapter() {
         	@Override
         	public void mouseReleased(MouseEvent e) {
-        		Dialog chat = chatWindow();
-        		chat.setVisible(true);
+        		Dialog chatting = showChat();
+        		chatting.setVisible(true);
         	}
         });
         
         Button done = PM.getButton("Counsel Done");
+        Button refresh = PM.getButton("refresh");
+        
+        refresh.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseReleased(MouseEvent e) {
+        		refresh();
+        		loadData();
+        	}
+        });
+        
         btnPn.add(goChat);
         btnPn.add(done);
+        btnPn.add(refresh);
         add(btnPn, BorderLayout.SOUTH);
         
         int posWid = (int)(SCREEN_WIDTH/2) - (int)(PROGRAM_WIDTH/2);
@@ -434,14 +503,60 @@ class CounselorProgram extends Frame {
         setBounds(posWid, posHgt, PROGRAM_WIDTH, PROGRAM_HEIGHT);
         setVisible(true);
     }
-}
-
-public class SupplierProgram {
-
+	
+	
     public static void main(String[] args) {
+    	ServerSocket serverSock = null;
+    	Socket client = null;
+    	InputStream is = null;
+		InputStreamReader isr = null;
+		OutputStream os = null;
+		OutputStreamWriter osw = null;
+		BufferedReader br = null;
+		
+    	try {
+			serverSock = new ServerSocket(8000);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    	
         LoginWindow lw = new LoginWindow();
-//    	CounselorProgram cp = new CounselorProgram("왕인서");
+        
+        try {
+        	client = serverSock.accept();
 
+  			
+			
+			System.out.println("client 연결여부: " + client.isConnected());
+			try {
+				is = client.getInputStream();
+    			isr = new InputStreamReader(is);
+				os = client.getOutputStream();
+				osw = new OutputStreamWriter(os);
+				br = new BufferedReader(isr);
+				pw = new PrintWriter(osw);
+				while(true) {					
+					String msg;
+					while(true) {
+						msg = br.readLine();
+						if(msg.equals("exit")) break;
+						chatWindow.append(msg + "\n");
+					}
+				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}finally {
+				if(pw != null) pw.close();
+				if(br != null) br.close();
+				if(osw != null) osw.close();
+				if(os != null) os.close();
+				if(isr != null) isr.close();
+				if(is != null) is.close();
+				if(serverSock != null) serverSock.close();
+			}
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
     }
-
 }
+

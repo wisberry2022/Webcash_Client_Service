@@ -2,11 +2,13 @@ package UI;
 
 import java.awt.BorderLayout;
 import java.awt.Button;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.Label;
 import java.awt.LayoutManager;
@@ -17,17 +19,29 @@ import java.awt.TextField;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import ETC.FileHandler;
 
-class Monitor extends Frame {
+public class ClientProgram extends Frame{
     static Toolkit tk = Toolkit.getDefaultToolkit();
-    static Dimension sizeManager = new Dimension(500, 400);
+    static Dimension sizeManager = new Dimension(500, 450);
     static final int SCREEN_WIDTH = tk.getScreenSize().width;
     static final int SCREEN_HEIGHT = tk.getScreenSize().height;
     static final int PROGRAM_WIDTH = sizeManager.width;
@@ -42,14 +56,18 @@ class Monitor extends Frame {
     private String beforeData;
     private TextField tf;
     private TextArea resultMonitor;
-    
+    private boolean keep = true;
+    static TextArea chatWindow = new TextArea();
+    static TextField chatter = new TextField();
+    static String send = "";
+    static String receive = "";
+    static PrintWriter pw;
     
     public void loadData() {
     	wfh.settingReader();
     	wfh.settingBufferedReader();
     	
     	beforeData = wfh.BufferedFileRead();
-//    	System.out.println("기존 데이터: " + beforeData);
     	
     	wfh.brClose();
     	wfh.frClose();
@@ -61,7 +79,6 @@ class Monitor extends Frame {
     
     	String msg;
     	msg = beforeData + name + "\t" + category + "\t" + counselor + "\n";
-//    	System.out.println("입력할 데이터: " + msg);
     	
     	wfh.BufferedFileWrite(msg);
     	
@@ -84,12 +101,62 @@ class Monitor extends Frame {
     	fh.frClose();
     }
     
-    public Monitor() {
+    public Dialog showChat() {
+    	Dialog chat = new Dialog(this, "WCS Chat");
+    	int pw = PROGRAM_WIDTH;
+    	int ph = PROGRAM_HEIGHT+300;
+    	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pw/2);
+        int posHgt = (int)(SCREEN_HEIGHT/2) - (int)(ph/2);
+    	chat.setBounds(posWid, posHgt, pw, ph);
+    	    	
+    	chat.setLayout(new BorderLayout());
+    	    	
+    	chat.add(chatWindow, BorderLayout.CENTER);
     	
+    	Panel btnBox = new Panel();
+    	Button off = new Button("Counsel Off");
+    	    	
+    	off.addMouseListener(new MouseAdapter() {
+    		@Override
+    		public void mouseReleased(MouseEvent e) {
+    			keep = false;
+    		}
+    	});
+    	
+    	btnBox.setLayout(new GridLayout(2,1));
+    	btnBox.add(chatter);
+    	btnBox.add(off);
+    	
+    	chat.add(btnBox, BorderLayout.SOUTH);
+    	
+    	chat.setTitle("WCS-Client");
+    	chat.addWindowListener(new WindowAdapter() {
+    		@Override
+    		public void windowClosing(WindowEvent e) {
+    			chat.dispose();
+    		}
+    	});
+    	
+		return chat;
+    }
+    
+    public ClientProgram() {
     	loadCounselor();
-        LayoutManager lm = new GridBagLayout();
 
+    	chatter.addActionListener(new ActionListener() {
+    		@Override
+    		public void actionPerformed(ActionEvent e) {
+    			String msg = "[" + name + "]: " + chatter.getText() + "\n";
+    			pw.print(msg);
+    			pw.flush();
+    			chatter.setText("");
+    			chatWindow.append(msg);
+    		}
+    	});
+    	
+        LayoutManager lm = new GridBagLayout();
         setLayout(lm);
+        
         int widPos = (int)(SCREEN_WIDTH/2) - (int)(PROGRAM_WIDTH/2);
         int hgtPos = (int)(SCREEN_HEIGHT/2) - (int)(PROGRAM_HEIGHT/2);
         setBounds(widPos, hgtPos, PROGRAM_WIDTH, PROGRAM_HEIGHT);
@@ -174,9 +241,9 @@ class Monitor extends Frame {
         subGbc.gridx = 0;
         subGbc.gridy = 2;
         subGbc.gridwidth = 2;
-        subGbc.insets = new Insets(10, 0, 10, 0);
+        subGbc.insets = new Insets(10, 0, 3, 0);
         selectBox.add(request, subGbc);
-
+        
         request.addMouseListener(new MouseAdapter() {
         	@Override
         	public void mouseReleased(MouseEvent e) {
@@ -186,6 +253,21 @@ class Monitor extends Frame {
         		msg = "이름: " + name + "\n" + "문의내역: " + category + "\n" + "배정 상담사: " + counselor;
         		resultMonitor.setText(msg);
         		WriteData();
+        	}
+        });
+        
+        Button chat = new Button("go Chat");
+        subGbc.gridx = 0;
+        subGbc.gridy = 3;
+        subGbc.gridwidth = 2;
+        subGbc.insets = new Insets(0, 0, 10, 0);
+        selectBox.add(chat, subGbc);
+        
+        chat.addMouseListener(new MouseAdapter(){
+        	@Override
+        	public void mouseReleased(MouseEvent e) {	
+        		Dialog chatting = showChat();
+        		chatting.setVisible(true);
         	}
         });
         
@@ -204,12 +286,58 @@ class Monitor extends Frame {
             }
         });
     }
-}
-
-
-public class ClientProgram {
+	
     public static void main(String[] args) {
-        Monitor mn = new Monitor();
+        ClientProgram mn = new ClientProgram();
+    
+        Socket client = null;
+        
+		try {
+			client = new Socket(InetAddress.getLocalHost(), 8000);
+		} catch (UnknownHostException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		InputStream is = null;
+	    InputStreamReader isr = null;
+	    OutputStream os = null;
+	    OutputStreamWriter osw = null;
+	    BufferedReader br = null;
+	    
+		try {	
+			is = client.getInputStream();
+			isr = new InputStreamReader(is);
+			os = client.getOutputStream();
+			osw = new OutputStreamWriter(os);
+			br = new BufferedReader(isr);
+			pw = new PrintWriter(osw);
+			
+			while(true) {
+				String msg;
+				while(true) {
+					msg = br.readLine();
+					if(msg == null) break;
+					chatWindow.append(msg + "\n");
+				}
+			}
+		}catch (UnknownHostException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}finally {				
+			try {
+				if(pw != null) pw.close();
+				if(br != null) br.close();
+				if(osw != null) osw.close();
+				if(os != null) os.close();
+				if(isr != null) isr.close();
+				if(is != null) is.close();
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+		}
     }
 
 }
