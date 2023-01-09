@@ -265,7 +265,7 @@ public class ClientProgram extends Frame{
         
         chat.addMouseListener(new MouseAdapter(){
         	@Override
-        	public void mouseReleased(MouseEvent e) {	
+        	public void mouseReleased(MouseEvent e) {
         		Dialog chatting = showChat();
         		chatting.setVisible(true);
         	}
@@ -289,9 +289,8 @@ public class ClientProgram extends Frame{
 	
     public static void main(String[] args) {
         ClientProgram mn = new ClientProgram();
-    
         Socket client = null;
-        
+         
 		try {
 			client = new Socket(InetAddress.getLocalHost(), 8000);
 		} catch (UnknownHostException e1) {

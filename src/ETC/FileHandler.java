@@ -56,7 +56,7 @@ public class FileHandler {
         this.createWriteFile();
     }
 
-    // readFile, writeFile 설정
+    // readFile, writeFile ���� 
     public FileHandler setRead(String readFile) {
         this.readFile = new File(readFile);
         this.createReadFile();
@@ -74,7 +74,7 @@ public class FileHandler {
         this.writeFile = new File(writeFile);
     }
 
-    // InputStream 설정 메소드
+    // InputStream �ʱ�ȭ
     public void settingInput() {
         try {
             is = new FileInputStream(readFile);
@@ -99,7 +99,7 @@ public class FileHandler {
         br = new BufferedReader(fr);
     }
 
-    // OutputStream 설정 메소드
+    // OutputStream �ʱ�ȭ
     public void settingBos() {
         bos = new BufferedOutputStream(os);
     }
@@ -128,7 +128,7 @@ public class FileHandler {
         bw = new BufferedWriter(fw);
     }
 
-    // read 메소드
+    // read �޼ҵ�
     public String read() {
         byte[] temp = new byte[(int)this.readFile.length()];
         try {
@@ -190,7 +190,7 @@ public class FileHandler {
         }
     }
 
-    // write 메소드
+    // write �޼ҵ�
     public void write(String msg) {
         try {
             byte[] bArr = msg.getBytes();
@@ -224,8 +224,8 @@ public class FileHandler {
             e.printStackTrace();
         }
     }
-
-    // io close 메소드
+    
+    // io close �޼ҵ�
     public void iClose() {
         try {
             if(is != null) is.close();
@@ -277,7 +277,7 @@ public class FileHandler {
         }
     }
 
-    // Reader close 메소드
+    // Reader close �޼ҵ�
     public void frClose() {
         try {
             if(fr != null) fr.close();
@@ -294,7 +294,7 @@ public class FileHandler {
         }
     }
 
-    // Writer close 메소드
+    // Writer close �޼ҵ�
     public void fwClose() {
         try {
             if(fw != null) fw.close();

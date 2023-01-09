@@ -292,48 +292,68 @@ public class CounselorProgram extends Frame{
     final static int PROGRAM_HEIGHT = sizeManager.height;
     final static PanelManager PM = new PanelManager();
     final static FileHandler rfh = new FileHandler("data.bin", FileHandler.READ);
+    final static FileHandler wfh = new FileHandler("data.bin", FileHandler.WRITE);
     private ERR_MODAL<CounselorProgram> EM = new ERR_MODAL<>(sizeManager, this, 100, 100);
     private Queue<Customer> CustomerList = new LinkedList<>();
+    private List<Customer> TotalList = new ArrayList<>();
     private String me;
     private String currentCustom;
     private java.awt.List taskList = new java.awt.List();
     private TextArea detail;
-	private boolean keep = true;
 	static String send = "";
 	static String receive = "";
 	static TextArea chatWindow = new TextArea();
 	static TextField chatter = new TextField();
 	static PrintWriter pw;
 	
+	
+	// 새로고침 시 taskList에 있는 목록 모두 제거
     public void refresh() {
     	String[] itms = taskList.getItems();
     	for(int i = 0; i<itms.length; i++) {
     		taskList.remove(itms[i]);
     	}
-    	Iterator<Customer> temp = CustomerList.iterator();
-    	Collection<Customer> temp2 = new ArrayList<>();
-    	while(temp.hasNext()) {
-    		temp2.add(temp.next());
+    	Iterator<Customer> list = CustomerList.iterator();
+    	Collection<Customer> listC = new ArrayList<>();
+    	while(list.hasNext()) {
+    		listC.add(list.next());
     	}
-    	CustomerList.removeAll(temp2);
+    	CustomerList.removeAll(listC);
+    	
+    	Iterator<Customer> total = TotalList.iterator();
+    	Collection<Customer> totalC = new ArrayList<>();
+    	while(total.hasNext()) {
+    		totalC.add(total.next());
+    	}
+    	TotalList.removeAll(totalC);
     }
     
+    // 배정 고객만 불러오기
     public void loadData() {
+    	String rawData;
+    	int idx = 1;
+    	Customer cs;
+    	Customer my;
+    	
     	rfh.settingReader();
     	rfh.settingBufferedReader();
     	
-    	String rawData;
     	rawData = rfh.BufferedFileRead();
-    	
+   	
     	String[] parsed = rawData.split("\n");
-    	int idx = 1;
+    	
     	for(int i = 0; i<parsed.length; i++) {
     		String[] data = parsed[i].split("\t");
-    		if(me.equals(data[data.length-1])) {
-    			Customer cs = new Customer(data[0]);
-    			cs.customerId = idx++;
+    		if(data.length == 3) {
+        		cs = new Customer(data[0]);
+        		cs.customerId = i+1;
     			cs.inquiry = data[1];
-    			CustomerList.add(cs);
+    			cs.counselor = data[2];
+    			TotalList.add(cs);
+        		if(me.equals(data[data.length-1])) {
+        			cs.customerId = idx++;
+        			CustomerList.add(cs);
+        		}    			
     		}
     	}
     	
@@ -341,14 +361,35 @@ public class CounselorProgram extends Frame{
     	
     	Iterator<Customer> ite = CustomerList.iterator();
     	while(ite.hasNext()) {
-    		Customer cs = ite.next();
-    		msg = "배정 고객: " + cs.name;
+    		Customer me = ite.next();
+    		msg = "배정 고객: " + me.name;
     		taskList.add(msg);
     	}
     	
     	rfh.brClose();
     	rfh.frClose();
     }
+    
+    // 고객 목록 삭제 후 데이터 저장 
+    public void saveData(String target) {
+    	String msg = "";
+    	Customer cs;
+    	Iterator<Customer> ite = TotalList.iterator();
+    	while(ite.hasNext()) {
+    		cs = ite.next();
+    		if(cs.name.equals(target)) continue;
+    		msg += cs.name + "\t" + cs.inquiry + "\t" + cs.counselor + "\n";
+    	}
+    	
+    	wfh.settingWriter();
+    	wfh.settingBufferedWriter();
+    	
+    	wfh.BufferedFileWrite(msg);
+    	
+    	wfh.bwClose();
+    	wfh.fwClose();
+    }
+    
     
     public Dialog showChat() {
     	Dialog chat = new Dialog(this, "WCS Chat");
@@ -368,23 +409,13 @@ public class CounselorProgram extends Frame{
     	btnBox.add(chatter);
     	btnBox.add(off);
     	
-    	off.addMouseListener(new MouseAdapter() {
-    		@Override
-    		public void mouseReleased(MouseEvent e) {
-    			keep = false;
-    		}
-    	});
-    	    	
-//    	chatter.addKeyListener(new KeyAdapter() {
+//    	off.addMouseListener(new MouseAdapter() {
 //    		@Override
-//    		public void keyReleased(KeyEvent e) {
-//    			if(e.getKeyCode() == 10) {
-//    				send = "[상담사]: " + chatter.getText() + "\n";
-//    				chatWindow.append(send);
-//    				chatter.setText("");
-//    			}
+//    		public void mouseReleased(MouseEvent e) {
+//    			keep = false;
 //    		}
 //    	});
+    	    	
     	
     	chat.add(chatWindow, BorderLayout.CENTER);
     	chat.add(btnBox, BorderLayout.SOUTH);
@@ -397,6 +428,20 @@ public class CounselorProgram extends Frame{
     	});
     	
 		return chat;
+    }
+    
+    public void takeOut(String name) {
+    	String target = name.split(": ")[1];
+    	Customer cs;
+    	Customer temp = null;
+    	Customer head = CustomerList.element();
+    	if(head.name.equals(target)) {
+    		CustomerList.remove();
+    		taskList.remove("배정 고객: " + target);
+    		saveData(target);
+    	}else {
+    		
+    	}
     }
     
     public CounselorProgram(String name) {
@@ -477,12 +522,22 @@ public class CounselorProgram extends Frame{
         goChat.addMouseListener(new MouseAdapter() {
         	@Override
         	public void mouseReleased(MouseEvent e) {
+        		
         		Dialog chatting = showChat();
         		chatting.setVisible(true);
         	}
         });
         
         Button done = PM.getButton("Counsel Done");
+        
+        done.addMouseListener(new MouseAdapter() {
+        	@Override
+        	public void mouseReleased(MouseEvent e) {
+        		takeOut(taskList.getSelectedItem());
+        	}
+        });
+        
+        
         Button refresh = PM.getButton("refresh");
         
         refresh.addMouseListener(new MouseAdapter() {
@@ -525,8 +580,6 @@ public class CounselorProgram extends Frame{
         try {
         	client = serverSock.accept();
 
-  			
-			
 			System.out.println("client 연결여부: " + client.isConnected());
 			try {
 				is = client.getInputStream();
@@ -535,6 +588,7 @@ public class CounselorProgram extends Frame{
 				osw = new OutputStreamWriter(os);
 				br = new BufferedReader(isr);
 				pw = new PrintWriter(osw);
+				
 				while(true) {					
 					String msg;
 					while(true) {
