@@ -293,7 +293,6 @@ public class CounselorProgram extends Frame{
     final static PanelManager PM = new PanelManager();
     final static FileHandler rfh = new FileHandler("data.bin", FileHandler.READ);
     final static FileHandler wfh = new FileHandler("data.bin", FileHandler.WRITE);
-    private ERR_MODAL<CounselorProgram> EM = new ERR_MODAL<>(sizeManager, this, 100, 100);
     private Queue<Customer> CustomerList = new LinkedList<>();
     private List<Customer> TotalList = new ArrayList<>();
     private String me;
@@ -393,11 +392,11 @@ public class CounselorProgram extends Frame{
     
     public Dialog showChat() {
     	Dialog chat = new Dialog(this, "WCS Chat");
-    	int pw = PROGRAM_WIDTH-50;
+    	int pW = PROGRAM_WIDTH-50;
     	int ph = PROGRAM_HEIGHT;
-    	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pw/2);
+    	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pW/2);
         int posHgt = (int)(SCREEN_HEIGHT/2) - (int)(ph/2);
-    	chat.setBounds(posWid, posHgt, pw, ph);
+    	chat.setBounds(posWid, posHgt, pW, ph);
     	    	
     	chat.setLayout(new BorderLayout());
     	
@@ -409,12 +408,17 @@ public class CounselorProgram extends Frame{
     	btnBox.add(chatter);
     	btnBox.add(off);
     	
-//    	off.addMouseListener(new MouseAdapter() {
-//    		@Override
-//    		public void mouseReleased(MouseEvent e) {
-//    			keep = false;
-//    		}
-//    	});
+    	off.addMouseListener(new MouseAdapter() {
+    		@Override
+    		public void mouseReleased(MouseEvent e) {
+    			String msg = "상담사가 연결을 끊었습니다!";
+        		pw.println("----------------------------------------------------------------------------");
+        		pw.print(msg + "\n");
+        		pw.println("----------------------------------------------------------------------------");
+    			pw.flush();
+    			chat.dispose();
+    		}
+    	});
     	    	
     	
     	chat.add(chatWindow, BorderLayout.CENTER);
@@ -423,6 +427,11 @@ public class CounselorProgram extends Frame{
     	chat.addWindowListener(new WindowAdapter() {
     		@Override
     		public void windowClosing(WindowEvent e) {
+    			String msg = "상담사가 연결을 끊었습니다!";
+        		pw.println("----------------------------------------------------------------------------");
+        		pw.print(msg + "\n");
+        		pw.println("----------------------------------------------------------------------------");
+    			pw.flush();
     			chat.dispose();
     		}
     	});
@@ -439,8 +448,12 @@ public class CounselorProgram extends Frame{
     		CustomerList.remove();
     		taskList.remove("배정 고객: " + target);
     		saveData(target);
+    		detail.setText(" ");
     	}else {
-    		
+    		Dimension ModalSize = new Dimension(500,300);
+    		ERR_MODAL<CounselorProgram> EM = new ERR_MODAL<>(ModalSize, this, 100, 100);
+    		Dialog NOT_ORDER = EM.ERR_WINDOW("아직 상담이 완료되지 않은 고객입니다!");
+    		NOT_ORDER.setVisible(true);
     	}
     }
     
@@ -522,7 +535,11 @@ public class CounselorProgram extends Frame{
         goChat.addMouseListener(new MouseAdapter() {
         	@Override
         	public void mouseReleased(MouseEvent e) {
-        		
+        		String msg = "상담사가 입장하였습니다!" + "\n";
+        		pw.println("----------------------------------------------------------------------------");
+        		pw.print(msg);
+        		pw.println("----------------------------------------------------------------------------");
+        		pw.flush();
         		Dialog chatting = showChat();
         		chatting.setVisible(true);
         	}

@@ -56,7 +56,6 @@ public class ClientProgram extends Frame{
     private String beforeData;
     private TextField tf;
     private TextArea resultMonitor;
-    private boolean keep = true;
     static TextArea chatWindow = new TextArea();
     static TextField chatter = new TextField();
     static String send = "";
@@ -103,11 +102,11 @@ public class ClientProgram extends Frame{
     
     public Dialog showChat() {
     	Dialog chat = new Dialog(this, "WCS Chat");
-    	int pw = PROGRAM_WIDTH;
+    	int pW = PROGRAM_WIDTH;
     	int ph = PROGRAM_HEIGHT+300;
-    	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pw/2);
+    	int posWid = (int)(SCREEN_WIDTH/2) - (int)(pW/2);
         int posHgt = (int)(SCREEN_HEIGHT/2) - (int)(ph/2);
-    	chat.setBounds(posWid, posHgt, pw, ph);
+    	chat.setBounds(posWid, posHgt, pW, ph);
     	    	
     	chat.setLayout(new BorderLayout());
     	    	
@@ -119,7 +118,12 @@ public class ClientProgram extends Frame{
     	off.addMouseListener(new MouseAdapter() {
     		@Override
     		public void mouseReleased(MouseEvent e) {
-    			keep = false;
+    			String msg = name + "님이 연결을 끊었습니다!";
+    			pw.println("--------------------------------------------------------------------------------------------------------------------------------");
+        		pw.print(msg + "\n");
+        		pw.println("--------------------------------------------------------------------------------------------------------------------------------");
+        		pw.flush();
+        		chat.dispose();
     		}
     	});
     	
@@ -133,6 +137,11 @@ public class ClientProgram extends Frame{
     	chat.addWindowListener(new WindowAdapter() {
     		@Override
     		public void windowClosing(WindowEvent e) {
+    			String msg = name + "님이 연결을 끊었습니다!";
+    			pw.println("--------------------------------------------------------------------------------------------------------------------------------");
+        		pw.print(msg + "\n");
+        		pw.println("--------------------------------------------------------------------------------------------------------------------------------");
+        		pw.flush();
     			chat.dispose();
     		}
     	});
@@ -266,6 +275,11 @@ public class ClientProgram extends Frame{
         chat.addMouseListener(new MouseAdapter(){
         	@Override
         	public void mouseReleased(MouseEvent e) {
+        		String msg = name + "님이 접속하였습니다!";
+    			pw.println("--------------------------------------------------------------------");
+        		pw.print(msg + "\n");
+        		pw.println("--------------------------------------------------------------------");
+        		pw.flush();
         		Dialog chatting = showChat();
         		chatting.setVisible(true);
         	}
