@@ -535,6 +535,7 @@ public class CounselorProgram extends Frame{
         goChat.addMouseListener(new MouseAdapter() {
         	@Override
         	public void mouseReleased(MouseEvent e) {
+        		chatWindow.setText("");
         		String msg = "상담사가 입장하였습니다!" + "\n";
         		pw.println("----------------------------------------------------------------------------");
         		pw.print(msg);
@@ -595,36 +596,38 @@ public class CounselorProgram extends Frame{
         LoginWindow lw = new LoginWindow();
         
         try {
-        	client = serverSock.accept();
+        	while(true) {
+    			try {
+    				while(true) {
+    	            	client = serverSock.accept();
+    	            	System.out.println("클라이언트 접속!");
+    					is = client.getInputStream();
+            			isr = new InputStreamReader(is);
+        				os = client.getOutputStream();
+        				osw = new OutputStreamWriter(os);
+        				br = new BufferedReader(isr);
+        				pw = new PrintWriter(osw);
+    					String msg;
+    					while(true) {
+    						msg = br.readLine();
+//    						System.out.println(msg);
+    						if(msg.equals("exit")) break;
+    						chatWindow.append(msg + "\n");
+    					}
+    				}
+    			} catch (IOException e1) {
+    				e1.printStackTrace();
+    			}finally {
+    				if(pw != null) pw.close();
+    				if(br != null) br.close();
+    				if(osw != null) osw.close();
+    				if(os != null) os.close();
+    				if(isr != null) isr.close();
+    				if(is != null) is.close();
+    				if(serverSock != null) serverSock.close();
+    			}
+        	}
 
-			System.out.println("client 연결여부: " + client.isConnected());
-			try {
-				is = client.getInputStream();
-    			isr = new InputStreamReader(is);
-				os = client.getOutputStream();
-				osw = new OutputStreamWriter(os);
-				br = new BufferedReader(isr);
-				pw = new PrintWriter(osw);
-				
-				while(true) {					
-					String msg;
-					while(true) {
-						msg = br.readLine();
-						if(msg.equals("exit")) break;
-						chatWindow.append(msg + "\n");
-					}
-				}
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}finally {
-				if(pw != null) pw.close();
-				if(br != null) br.close();
-				if(osw != null) osw.close();
-				if(os != null) os.close();
-				if(isr != null) isr.close();
-				if(is != null) is.close();
-				if(serverSock != null) serverSock.close();
-			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}

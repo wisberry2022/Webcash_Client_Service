@@ -122,6 +122,7 @@ public class ClientProgram extends Frame{
     			pw.println("--------------------------------------------------------------------------------------------------------------------------------");
         		pw.print(msg + "\n");
         		pw.println("--------------------------------------------------------------------------------------------------------------------------------");
+        		pw.println("exit");
         		pw.flush();
         		chat.dispose();
     		}
@@ -133,7 +134,7 @@ public class ClientProgram extends Frame{
     	
     	chat.add(btnBox, BorderLayout.SOUTH);
     	
-    	chat.setTitle("WCS-Client");
+    	chat.setTitle("WCS-Chat");
     	chat.addWindowListener(new WindowAdapter() {
     		@Override
     		public void windowClosing(WindowEvent e) {
@@ -141,6 +142,7 @@ public class ClientProgram extends Frame{
     			pw.println("--------------------------------------------------------------------------------------------------------------------------------");
         		pw.print(msg + "\n");
         		pw.println("--------------------------------------------------------------------------------------------------------------------------------");
+        		pw.println("exit");
         		pw.flush();
     			chat.dispose();
     		}
@@ -169,14 +171,14 @@ public class ClientProgram extends Frame{
         int widPos = (int)(SCREEN_WIDTH/2) - (int)(PROGRAM_WIDTH/2);
         int hgtPos = (int)(SCREEN_HEIGHT/2) - (int)(PROGRAM_HEIGHT/2);
         setBounds(widPos, hgtPos, PROGRAM_WIDTH, PROGRAM_HEIGHT);
-        setTitle("WSC");
+        setTitle("WCS");
 
         setMenuBar(new TopMenu().getFrame());
 
         GridBagConstraints total = new GridBagConstraints();
         total.fill = GridBagConstraints.NORTH;
 
-        Panel titlePanel = PM.getTitlePanel("WebCash Service Client");
+        Panel titlePanel = PM.getTitlePanel("WebCash Client Service");
         total.gridx = 0;
         total.gridy = 0;
         add(titlePanel, total);
